@@ -1,16 +1,38 @@
 import React from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
 import shareVideo from '../assets/share.mp4';
 import logo from '../assets/logowhite.png';
 import {GoogleLogin} from '@react-oauth/google';
+import jwt_decode from 'jwt-decode';
+
+import { client } from '../client';
 
 const Login = () => {
 
-  const responseGoogle= (response) => {
-    console.log(response)
-  }
+  const navigate = useNavigate();
 
+  function responseGoogle(response){
+    console.log(response );
+    const userObject = jwt_decode(response.credential);
+    console.log(userObject);
+    localStorage.setItem('user', JSON.stringify(userObject));
+    const {picture, name, sub} = userObject;
+    const doc = {
+      _id: sub,
+      _type: 'user',
+      userName: name,
+      image: picture,
+    }
+
+    client.createIfNotExists(doc)
+      .then(() => {
+        navigate('/', { replace: true })
+      })
+
+  }   
+  
   return (
     <div className='flex justify-start items-center flex-col h-screen'>
       <div className="realtive w-full h-full">
@@ -29,24 +51,20 @@ const Login = () => {
             <img src={logo} width="130px" alt="logo" />
           </div>
 
+          <div id="signInDiv"></div>
+
           <div className="shadow-2xl">
+            
             <GoogleLogin
               clientId={process.env.REACT_APP_GOOGLE_API_TOKEN}
-              render={(renderProps) => (
-                <button
-                  type="button"
-                  className="bg-mainColor flex justify-center i
-                  tems-center p-3 rounded-lg cursor-pointer outline-none" 
-                  onClick={renderProps.onClick}
-                  disabled={renderProps.disabled}
-                >
-                  <FcGoogle className="mr-4" /> Sign in with Google
-                </button>
-              )}
               onSuccess={responseGoogle}
-              onFailure={responseGoogle}
+              onError={() => {
+                console.log('Login Failed');
+              }}
               cookiePolicy="single_host_origin"
-            />
+              isSignedIn = {true}
+            /> 
+
           </div>
         </div>
       </div>
